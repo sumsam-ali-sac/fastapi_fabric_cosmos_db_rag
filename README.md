@@ -1,354 +1,196 @@
-# Cosmos DB RAG Chat API - Production-Grade FastAPI
+# Cosmos DB RAG Chat API — FastAPI example for Fabric's native Cosmos DB
 
-A **production-ready, scalable FastAPI application** for querying Azure Cosmos DB with Retrieval-Augmented Generation (RAG) using Azure OpenAI embeddings and completions.
+This repository demonstrates a production-minded FastAPI application that connects to Azure Fabric's native Cosmos DB and performs Retrieval-Augmented Generation (RAG) using Azure OpenAI embeddings and completions. It includes examples for building a vector store, caching strategy, and orchestrating a RAG pipeline.
 
-## 🎯 Key Features
+**Highlights:**
 
-- **Vector Search**: Fast similarity search on Cosmos DB
-- **RAG (Retrieval-Augmented Generation)**: Ground responses in actual data
-- **Caching**: Smart response caching for frequently asked questions
-- **Async/Await**: Full async support for high concurrency
-- **API Versioning**: v1 endpoints with future versioning support
-- **Structured Logging**: JSON-formatted logs for monitoring
-- **Error Handling**: Comprehensive exception hierarchy with error codes
-- **Repository Pattern**: Clean data access layer abstraction
-- **Dependency Injection**: Factory pattern for client management
-- **Request Tracking**: Request IDs for distributed tracing
-- **Health Checks**: Container and database status monitoring
-- **Performance Metrics**: Built-in operation tracking and reporting
+- **Purpose:** Show how to connect to Fabric's Cosmos DB, store/retrieve vectors, and generate grounded responses.
+- **Stack:** FastAPI, Azure Cosmos DB (native Fabric integration), Azure OpenAI (embeddings + completions), PDM for dependency management.
 
-## 📁 Project Structure
+**Table of contents**
 
-\`\`\`
-fastapi-cosmos-rag/
-├── core/                      # Core utilities and abstractions
-│   ├── __init__.py
-│   ├── base.py               # Base repository and service classes
-│   ├── logger.py             # Structured logging
-│   ├── cache.py              # Caching abstractions
-│   ├── middleware.py         # Custom middleware
-│   ├── pagination.py         # Pagination utilities
-│   └── filters.py            # Query filtering
-│
-├── api/                       # API routes by version
-│   └── v1/
-│       ├── __init__.py
-│       └── routes.py         # v1 endpoint handlers
-│
-├── database/                  # Data access layer
-│   ├── __init__.py
-│   ├── cosmos_service.py     # Cosmos DB operations
-│   └── repositories.py       # Repository implementations
-│
-├── services/                  # Business logic layer
-│   ├── __init__.py
-│   ├── base_chat_service.py # Abstract chat service
-│   ├── chat_service.py      # Chat orchestration
-│   └── openai_service.py    # OpenAI integration
-│
-├── utils/                     # Utility functions
-│   ├── __init__.py
-│   ├── validators.py        # Input validation
-│   ├── metrics.py           # Performance tracking
-│   └── helpers.py           # Helper functions
-│
-├── config.py                 # Configuration management
-├── models.py                # Pydantic models
-├── dependencies.py          # Dependency injection setup
-├── exceptions.py            # Custom exceptions
-├── main.py                  # Application entry point
-│
-├── tests/                    # Test suite
-│   ├── __init__.py
-│   ├── conftest.py         # Pytest configuration
-│   ├── test_endpoints.py   # Endpoint tests
-│   └── test_services.py    # Service tests
-│
-├── scripts/                  # Utility scripts
-│   ├── setup_db.py         # Database initialization
-│   └── migrate.py          # Database migrations
-│
-├── .env.example            # Environment template
-├── .dockerignore           # Docker ignore file
-├── .gitignore              # Git ignore file
-├── Dockerfile              # Container image
-├── docker-compose.yml      # Container orchestration
-├── requirements.txt        # Python dependencies
-├── pytest.ini              # Pytest configuration
-└── README.md               # This file
-\`\`\`
+- **Installation & Quick Start**
+- **Environment & Service Principal setup**
+- **How the RAG flow works**
+- **Running with Docker / PDM**
+- **Testing**
+- **Security & production notes**
 
-## 🚀 Quick Start
+---
 
-### Prerequisites
-- Python 3.10+
-- Azure Cosmos DB account
-- Azure OpenAI deployment (completions + embeddings)
+**Installation & Quick Start**
 
-### Installation
+1. Clone the repository:
 
-1. **Clone the repository**
-\`\`\`bash
+```bash
 git clone <repo-url>
-cd fastapi-cosmos-rag
-\`\`\`
+cd fastapi_fabric_cosmos_db_rag
+```
 
-2. **Create virtual environment**
-\`\`\`bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-\`\`\`
+2. Use PDM (recommended) or your preferred environment manager:
 
-3. **Install dependencies**
-\`\`\`bash
-pip install -r requirements.txt
-\`\`\`
+```bash
+# Install PDM if you don't have it
+pip install pdm
+# Install production dependencies
+pdm install --prod
+# Run app in dev
+pdm run uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
 
-4. **Configure environment**
-\`\`\`bash
-cp .env.example .env
-# Edit .env with your Azure credentials
-\`\`\`
+3. API will be available at `http://localhost:8000`.
 
-5. **Run application**
-\`\`\`bash
-python main.py
-\`\`\`
+Environment file
 
-The API is now available at `http://localhost:8000`
+- Copy `./.env.example` to `./.env` and set secrets. This repo includes `.env.example` with the required keys.
 
-## 📚 API Documentation
+---
 
-### Interactive Docs
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
+**Service Principal & Fabric (Cosmos DB) access**
+To authenticate from this service to Fabric's native Cosmos DB it's typical to use an Azure AD Service Principal. High-level steps:
 
-### Endpoints
+1. Go to MS Fabric and enable use of service principles:
 
-#### Health Check
-\`\`\`bash
-GET /api/v1/health
+<img width="896" height="525" alt="image" src="https://github.com/user-attachments/assets/c7aaab9f-4c39-4a82-bc53-0b0bc2232015" />
 
-Response:
-{
-  "status": "healthy",
-  "database": "VectorCosmosDB",
-  "containers": {
-    "movies": true,
-    "cache": true
-  },
-  "timestamp": "2024-01-15T10:30:45.123456"
-}
-\`\`\`
 
-#### Chat Endpoint
-\`\`\`bash
-POST /api/v1/chat
 
-Request:
-{
-  "message": "Find action movies from the 2000s",
-  "use_cache": true,
-  "num_results": 5
-}
+2. Create an Azure AD App (Service Principal):
 
-Response:
-{
-  "response": "Here are some great action movies from the 2000s...",
-  "from_cache": false,
-  "sources": [
-    {
-      "id": "movie_123",
-      "title": "...",
-      "similarity_score": 0.92
-    }
-  ]
-}
-\`\`\`
+```bash
+# Use Azure CLI (example):
+az ad app create --display-name my-fabric-app
+az ad sp create --id <app-id>
+# Create a client secret:
+az ad app credential reset --id <app-id> --append --display-name "pymgmt-secret"
+```
 
-#### Clear Cache
-\`\`\`bash
-POST /api/v1/clear-cache
+4. Grant workspace access to the service principal in Fabric (DB based access does not allow writes as of now:
 
-Response:
-{
-  "message": "Cache management",
-  "info": "Use Cosmos DB portal for bulk cache operations"
-}
-\`\`\`
+- Navigate to your **Fabric workspace** and open it.
+- Click **Manage workspace access** (gear icon or workspace settings).
+- Click **Add user** and search for your service principal by its **App (Client) ID** or display name.
+- Select the service principal and assign the role **Contributor** (or the necessary role with read/write access to Cosmos DB resources).
+- Click **Add** to confirm.
 
-## 🏗️ Architecture
+This grants the service principal workspace-level access to manage Cosmos DB operations within Fabric.
 
-### Layered Architecture
+3. Capture the following values and add them to your `.env`:
 
-\`\`\`
-API Layer (routes) → Service Layer → Repository Layer → Database Layer
-     ↓                                                          ↓
-  FastAPI Routes        Business Logic      Data Access    Cosmos DB
-\`\`\`
+- `AZURE_TENANT_ID` — Tenant ID
+- `AZURE_CLIENT_ID` — App (client) ID
+- `AZURE_CLIENT_SECRET` — Client secret
+- `COSMOS_ENDPOINT` — Cosmos DB endpoint URL
+- `COSMOS_DATABASE_NAME` and container names
 
-### Core Components
+4. The application uses `azure-identity` to obtain tokens via `DefaultAzureCredential` if deployed to Azure services, or uses explicit client credentials in local/dev environments.
 
-**1. Repository Pattern**
-- `BaseRepository`: Abstract interface for data access
-- `DocumentRepository`: Document CRUD operations
-- `CacheRepository`: Cache management
+---
 
-**2. Service Layer**
-- `BaseChatService`: Abstract chat service interface
-- `ChatService`: Orchestrates RAG workflow
-- `OpenAIService`: Embedding generation
-- `CompletionService`: Response generation
+**RAG Flow (how this repo organizes it)**
 
-**3. Dependency Injection**
-- `ClientFactory`: Singleton pattern for clients
-- `CosmosDBClient`: Cosmos DB connection management
-- `OpenAIClients`: Azure OpenAI clients
+- Client calls `POST /api/v1/chat` with `message`, optionally `use_cache` and `num_results`.
+- The app generates an embedding (Azure OpenAI embeddings API).
+- A vector similarity search is performed against Cosmos DB (vectors stored on documents in a container property).
+- If a cached response with high similarity exists, it may be returned (cache hit threshold controlled in settings).
+- Otherwise the top documents are used to build context and the OpenAI completions API generates the final assistant response.
+- Successful responses can be cached in a separate cache container for future reuse.
 
-**4. Middleware**
-- `RequestIDMiddleware`: Add request tracking IDs
-- `RequestLoggingMiddleware`: Log request/response details
-- `ErrorHandlingMiddleware`: Global error catching
+---
 
-### Data Flow
+Files of interest
 
-\`\`\`
-User Request
-    ↓
-ChatRequest (validation)
-    ↓
-ChatService.chat()
-    ├→ Generate Embedding (OpenAI)
-    ├→ Check Cache (CosmosDB)
-    ├→ Vector Search (CosmosDB)
-    ├→ Get Chat History (CosmosDB)
-    ├→ Generate Completion (OpenAI)
-    ├→ Cache Response (CosmosDB)
-    ↓
-ChatResponse
-\`\`\`
+- `main.py` — Application entry with lifespan that initializes the Cosmos + OpenAI clients.
+- `config.py` — All configuration loaded from environment variables.
+- `dependencies.py` — Factory for `CosmosDBClient` and OpenAI client wrappers.
+- `database/cosmos_service.py` — Cosmos DB wrapper: connect, vector search, cache operations.
+- `services/chat_service.py` — Orchestrates embeddings, search, completions, and caching.
+- `notebooks/InsertDataIntoCosmosDB.ipynb` — Fabric notebook to populate Cosmos DB with sample data.
 
-## ⚙️ Configuration
+---
 
-### Environment Variables
+**Populating Cosmos DB with Data (Fabric Notebook)**
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `COSMOS_ENDPOINT` | Yes | - | Cosmos DB endpoint URL |
-| `COSMOS_KEY` | Yes | - | Cosmos DB primary key |
-| `OPENAI_ENDPOINT` | Yes | - | Azure OpenAI endpoint |
-| `OPENAI_API_KEY` | Yes | - | Azure OpenAI API key |
-| `ENVIRONMENT` | No | production | Deployment environment |
-| `LOG_LEVEL` | No | INFO | Logging level |
-| `MAX_SEARCH_RESULTS` | No | 20 | Max vector search results |
-| `MIN_SIMILARITY_SCORE` | No | 0.02 | Minimum similarity threshold |
-| `CACHE_SIMILARITY_THRESHOLD` | No | 0.99 | Cache hit similarity |
-| `CHAT_HISTORY_LIMIT` | No | 3 | Messages to include in context |
+Before running the FastAPI service, you need to insert sample data into your Cosmos DB. Use the provided Fabric notebook:
 
-## 🧪 Testing
+1. **Navigate to your Fabric workspace** and create a new notebook or open the existing `InsertDataIntoCosmosDB.ipynb`.
 
-### Run Tests
-\`\`\`bash
-pytest
-\`\`\`
+2. **Download the dataset**:
+   - Download the ZIP file from: [AzureDataRetrievalAugmentedGenerationSamples/DataSet/Movies](https://github.com/microsoft/AzureDataRetrievalAugmentedGenerationSamples/blob/main/DataSet/Movies/MovieLens-4489-256D.zip)
+   - Extract `MovieLens-4489-256D.json` from the ZIP.
 
-### Run with Coverage
-\`\`\`bash
-pytest --cov=. --cov-report=html
-\`\`\`
+3. **Upload to Lakehouse**:
+   - In your Fabric workspace, upload the JSON file to the lakehouse at:
+   ```
+   /lakehouse/default/Files/MovieLens-4489-256D/MovieLens-4489-256D.json
+   ```
 
-### Run Specific Test
-\`\`\`bash
-pytest tests/test_services.py::TestChatService -v
-\`\`\`
+4. **Attach the Lakehouse** to the notebook (via notebook settings).
 
-## 🐳 Docker Deployment
+5. **Run the notebook**:
+   - The notebook will:
+     - Connect to your Cosmos DB using credentials from Fabric (environment/managed identity).
+     - Create containers (`vectorstorecontainer`, `vectorcachecontainer`).
+     - Parse the JSON dataset.
+     - Generate vector embeddings for each record using Azure OpenAI embeddings.
+     - Insert documents with vectors into the Cosmos DB.
+   - Click **Run All** to execute all cells.
 
-### Build Image
-\`\`\`bash
-docker build -t cosmos-rag-api:latest .
-\`\`\`
+6. **Verify data insertion**:
+   - Open the Fabric Cosmos DB explorer and check that documents are present in `vectorstorecontainer`.
+   - Alternatively, run a health check: `GET /api/v1/health` (see section below).
 
-### Run Container
-\`\`\`bash
-docker run -p 8000:8000 \
-  -e COSMOS_ENDPOINT=<your-endpoint> \
-  -e COSMOS_KEY=<your-key> \
-  -e OPENAI_ENDPOINT=<your-openai> \
-  -e OPENAI_API_KEY=<your-api-key> \
-  cosmos-rag-api:latest
-\`\`\`
+Once data is populated, the FastAPI service can query and perform RAG on the indexed documents.
 
-### Docker Compose
-\`\`\`bash
-docker-compose up
-\`\`\`
+Running with Docker (PDM-based image)
 
-## 📊 Monitoring & Logging
+Build and run using the included `Dockerfile` (PDM setup):
 
-### Structured Logging
-All logs are output in JSON format with:
-- Timestamp
-- Log level
-- Logger name
-- Message
-- Request ID (if applicable)
-- Additional context
+```bash
+docker-compose up --build
+```
 
-### Performance Tracking
-Operations automatically track:
-- Execution duration
-- Items scanned/returned
-- Query metrics
-- Custom metrics
+---
 
-View in logs or integrate with monitoring systems.
+Health checks & observability
 
-## 🔐 Security Best Practices
+- Health endpoint: `GET /api/v1/health` — returns `status`, `database`, `containers`, and `timestamp`.
+- Structured logs (JSON) and request IDs are enabled via `core/logger.py` and middleware.
 
-1. **Environment Variables**: Never commit `.env` file
-2. **API Keys**: Use Azure Key Vault in production
-3. **CORS**: Configure specific origins in production (not `["*"]`)
-4. **Rate Limiting**: Implement in production
-5. **Authentication**: Add OAuth/API key authentication
-6. **Input Validation**: All inputs validated via Pydantic
+---
 
-## 🚦 Production Deployment Checklist
+Testing
 
-- [ ] Set `DEBUG=false`
-- [ ] Set `ENVIRONMENT=production`
-- [ ] Configure specific `CORS_ORIGINS`
-- [ ] Use Azure Key Vault for secrets
-- [ ] Enable request logging and monitoring
-- [ ] Configure application insights
-- [ ] Set up Azure Container Registry
-- [ ] Deploy to Azure Container Instances/App Service
-- [ ] Configure health check endpoints
-- [ ] Set up CI/CD pipeline
-- [ ] Enable HTTPS
-- [ ] Configure auto-scaling
+Run tests with pytest (PDM):
 
-## 🛠️ Development
+```bash
+pdm run pytest -q
+# or
+pytest -q
+```
 
-### Adding New Endpoints
+---
 
-1. Create route in `api/v1/routes.py`:
-\`\`\`python
-@router.post("/new-endpoint", response_model=ResponseModel)
-async def new_endpoint(request: RequestModel):
-    # Implementation
-    pass
-\`\`\`
+`.env.example` (reference)
 
-2. Define models in `models.py`
+This repo contains `./.env.example`. Key entries you will typically set (trimmed):
 
-3. Implement business logic in `services/`
+```
+APP_NAME=Cosmos DB RAG Chat API
+AZURE_TENANT_ID=<your-tenant-id>
+AZURE_CLIENT_ID=<your-client-id>
+AZURE_CLIENT_SECRET=<your-client-secret>
+COSMOS_ENDPOINT=https://<your-cosmos-account>.documents.azure.com:443/
+COSMOS_DATABASE_NAME=VectorCosmosDB
+COSMOS_CONTAINER_NAME=vectorstorecontainer
+COSMOS_CACHE_CONTAINER_NAME=vectorcachecontainer
+OPENAI_ENDPOINT=https://<your-openai-endpoint>/
+OPENAI_API_KEY=<your-openai-key>
+OPENAI_EMBEDDINGS_MODEL=text-embedding-3-small
+OPENAI_EMBEDDINGS_DIMENSIONS=1536
+```
 
-### Adding New Services
-
-1. Create abstract base in `services/base_*.py`
-2. Implement in `services/*.py`
-3. Register in dependency injection
+Shoutout to MS for this tutorial: [Tutorial](https://learn.microsoft.com/en-us/azure/cosmos-db/gen-ai/rag-chatbot)
 
 ## 📖 Resources
 
