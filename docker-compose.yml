@@ -1,0 +1,16 @@
+services:
+  api:
+    build: .
+    container_name: cosmos_rag_chat_api
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./api:/app/api
+      - ./core:/app/core
+      - ./services:/app/services
+      - ./database:/app/database
+      - ./utils:/app/utils
+    command: pdm start
+    restart: unless-stopped
